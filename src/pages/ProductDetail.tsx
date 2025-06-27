@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
@@ -8,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { ShoppingCart, ArrowLeft, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import VoiceAgent from "@/components/VoiceAgent";
-
 interface Product {
   id: string;
   name: string;
@@ -17,49 +15,48 @@ interface Product {
   image_url: string | null;
   category: string | null;
 }
-
 const ProductDetail = () => {
-  const { id } = useParams<{ id: string }>();
+  const {
+    id
+  } = useParams<{
+    id: string;
+  }>();
   const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   useEffect(() => {
     if (id) {
       fetchProduct(id);
     }
   }, [id]);
-
   const fetchProduct = async (productId: string) => {
     try {
       console.log('Fetching product with ID:', productId);
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', productId)
-        .maybeSingle();
-
+      const {
+        data,
+        error
+      } = await supabase.from('products').select('*').eq('id', productId).maybeSingle();
       if (error) {
         console.error('Error fetching product:', error);
         toast({
           title: "Error",
           description: "No se pudo cargar el producto",
-          variant: "destructive",
+          variant: "destructive"
         });
         return;
       }
-
       if (!data) {
         toast({
           title: "Producto no encontrado",
           description: "El producto que buscas no existe",
-          variant: "destructive",
+          variant: "destructive"
         });
         navigate('/');
         return;
       }
-
       console.log('Product fetched:', data);
       setProduct(data);
     } catch (error) {
@@ -67,42 +64,35 @@ const ProductDetail = () => {
       toast({
         title: "Error",
         description: "Error inesperado al cargar el producto",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
-
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-ES', {
       style: 'currency',
       currency: 'EUR'
     }).format(price);
   };
-
   const getImageUrl = (imageUrl: string | null) => {
     if (!imageUrl) {
       return 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop';
     }
-    
     if (imageUrl.startsWith('http')) {
       return imageUrl;
     }
-    
     return `https://images.unsplash.com/${imageUrl}?w=800&h=600&fit=crop`;
   };
-
   const handleAddToCart = () => {
     toast({
       title: "Producto añadido",
-      description: `${product?.name} se ha añadido al carrito`,
+      description: `${product?.name} se ha añadido al carrito`
     });
   };
-
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    return <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="container mx-auto px-4 py-12">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-300 rounded w-32 mb-8"></div>
@@ -118,55 +108,40 @@ const ProductDetail = () => {
             </div>
           </div>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   if (!product) {
     return null;
   }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+  return <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-6">
+        <div className="container mx-auto px-4 py-6 bg-[#ffd300]">
           <div className="flex items-center justify-between">
-            <Button 
-              variant="ghost" 
-              onClick={() => navigate('/')}
-              className="flex items-center space-x-2"
-            >
+            <Button variant="ghost" onClick={() => navigate('/')} className="flex items-center space-x-2 bg-yellow-400 hover:bg-yellow-300">
               <ArrowLeft className="h-4 w-4" />
               <span>Volver al catálogo</span>
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">GridGaze Market</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Tech Market</h1>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-12 bg-yellow-50">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Product Image */}
           <div className="lg:col-span-1">
             <Card className="overflow-hidden shadow-lg">
               <div className="relative">
-                <img
-                  src={getImageUrl(product.image_url)}
-                  alt={product.name}
-                  className="w-full h-96 lg:h-[500px] object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop';
-                  }}
-                />
-                {product.category && (
-                  <Badge className="absolute top-4 left-4 bg-blue-600 hover:bg-blue-700 text-white">
+                <img src={getImageUrl(product.image_url)} alt={product.name} className="w-full h-96 lg:h-[500px] object-cover" onError={e => {
+                const target = e.target as HTMLImageElement;
+                target.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop';
+              }} />
+                {product.category && <Badge className="absolute top-4 left-4 bg-blue-600 hover:bg-blue-700 text-white">
                     {product.category}
-                  </Badge>
-                )}
+                  </Badge>}
               </div>
             </Card>
           </div>
@@ -201,20 +176,12 @@ const ProductDetail = () => {
 
             {/* Add to Cart Button */}
             <div className="space-y-4">
-              <Button 
-                onClick={handleAddToCart}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-semibold"
-                size="lg"
-              >
+              <Button onClick={handleAddToCart} size="lg" className="w-full text-white py-3 text-lg font-semibold bg-orange-500 hover:bg-orange-400">
                 <ShoppingCart className="h-5 w-5 mr-2" />
                 Añadir al Carrito
               </Button>
               
-              <Button 
-                variant="outline" 
-                className="w-full py-3 text-lg font-semibold"
-                size="lg"
-              >
+              <Button variant="outline" size="lg" className="w-full py-3 text-lg font-semibold bg-[blue600] text-gray-50 bg-blue-700 hover:bg-blue-600">
                 Comprar Ahora
               </Button>
             </div>
@@ -246,8 +213,6 @@ const ProductDetail = () => {
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default ProductDetail;
