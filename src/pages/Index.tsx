@@ -1,5 +1,5 @@
-
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -22,6 +22,7 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchProducts();
@@ -78,6 +79,15 @@ const Index = () => {
     
     // If it's an Unsplash ID, construct the URL
     return `https://images.unsplash.com/${imageUrl}?w=400&h=300&fit=crop`;
+  };
+
+  const handleProductClick = (product: Product) => {
+    navigate(`/product/${product.id}`);
+  };
+
+  const handleQuickView = (e: React.MouseEvent, product: Product) => {
+    e.stopPropagation();
+    setSelectedProduct(product);
   };
 
   if (loading) {
@@ -151,7 +161,7 @@ const Index = () => {
               <Card 
                 key={product.id}
                 className="group cursor-pointer bg-white hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border-0 shadow-sm overflow-hidden"
-                onClick={() => setSelectedProduct(product)}
+                onClick={() => handleProductClick(product)}
               >
                 <div className="relative overflow-hidden">
                   <img
@@ -164,7 +174,12 @@ const Index = () => {
                     }}
                   />
                   <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <Button size="sm" variant="secondary" className="bg-white/90 backdrop-blur-sm">
+                    <Button 
+                      size="sm" 
+                      variant="secondary" 
+                      className="bg-white/90 backdrop-blur-sm"
+                      onClick={(e) => handleQuickView(e, product)}
+                    >
                       <Eye className="h-4 w-4" />
                     </Button>
                   </div>
@@ -247,12 +262,15 @@ const Index = () => {
                     </div>
 
                     <div className="flex space-x-3 pt-4">
-                      <Button className="flex-1 bg-blue-600 hover:bg-blue-700">
-                        <ShoppingCart className="h-4 w-4 mr-2" />
-                        Añadir al Carrito
+                      <Button 
+                        className="flex-1 bg-blue-600 hover:bg-blue-700"
+                        onClick={() => navigate(`/product/${selectedProduct.id}`)}
+                      >
+                        Ver Detalles Completos
                       </Button>
                       <Button variant="outline" className="px-6">
-                        Comprar Ahora
+                        <ShoppingCart className="h-4 w-4 mr-2" />
+                        Añadir
                       </Button>
                     </div>
                   </div>
