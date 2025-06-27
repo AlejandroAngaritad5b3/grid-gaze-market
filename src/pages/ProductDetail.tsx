@@ -1,11 +1,11 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, ArrowLeft, Star, Mic, MicOff } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { ShoppingCart, ArrowLeft, Star, Mic, MicOff, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Product {
@@ -17,12 +17,20 @@ interface Product {
   category: string | null;
 }
 
+interface ConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
+
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [isListening, setIsListening] = useState(false);
+  const [conversation, setConversation] = useState<ConversationMessage[]>([]);
+  const [currentTranscription, setCurrentTranscription] = useState('');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -101,10 +109,97 @@ const ProductDetail = () => {
   };
 
   const toggleVoiceAgent = () => {
-    setIsListening(!isListening);
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  };
+
+  const startListening = () => {
+    setIsListening(true);
+    setCurrentTranscription('Escuchando...');
+    
+    // Simulate voice recognition
+    setTimeout(() => {
+      const sampleQuestions = [
+        "¿Cuáles son las características principales de este producto?",
+        "¿Qué garantía tiene este producto?",
+        "¿Es compatible con otros dispositivos?",
+        "¿Cuál es el tiempo de entrega?",
+        "¿Hay descuentos disponibles?"
+      ];
+      
+      const randomQuestion = sampleQuestions[Math.floor(Math.random() * sampleQuestions.length)];
+      setCurrentTranscription(randomQuestion);
+      
+      // Add user message to conversation
+      const userMessage: ConversationMessage = {
+        role: 'user',
+        content: randomQuestion,
+        timestamp: new Date()
+      };
+      
+      setConversation(prev => [...prev, userMessage]);
+      
+      // Simulate AI response
+      setTimeout(() => {
+        const aiResponse = generateAIResponse(randomQuestion, product);
+        const assistantMessage: ConversationMessage = {
+          role: 'assistant',
+          content: aiResponse,
+          timestamp: new Date()
+        };
+        
+        setConversation(prev => [...prev, assistantMessage]);
+        setCurrentTranscription('');
+        setIsListening(false);
+      }, 2000);
+      
+    }, 3000);
+
     toast({
-      title: isListening ? "Agente de voz desactivado" : "Agente de voz activado",
-      description: isListening ? "El agente de voz está ahora inactivo" : "El agente de voz está ahora escuchando",
+      title: "Agente de voz activado",
+      description: "Haz tu pregunta sobre el producto",
+    });
+  };
+
+  const stopListening = () => {
+    setIsListening(false);
+    setCurrentTranscription('');
+    toast({
+      title: "Agente de voz desactivado",
+      description: "Grabación detenida",
+    });
+  };
+
+  const generateAIResponse = (question: string, product: Product | null) => {
+    if (!product) return "Lo siento, no tengo información sobre este producto.";
+    
+    const responses = {
+      "características": `${product.name} cuenta con las siguientes características: ${product.description}. Es un producto de la categoría ${product.category} con un precio de ${formatPrice(product.price)}.`,
+      "garantía": `${product.name} incluye 2 años de garantía oficial del fabricante con soporte técnico completo.`,
+      "compatible": `${product.name} es compatible con la mayoría de dispositivos modernos. Para más detalles específicos, consulta las especificaciones técnicas.`,
+      "entrega": `El tiempo de entrega para ${product.name} es de 24-48 horas con envío gratuito.`,
+      "descuentos": `Actualmente ${product.name} está disponible al precio mostrado. Te notificaremos si hay promociones especiales.`
+    };
+    
+    const questionLower = question.toLowerCase();
+    for (const [key, response] of Object.entries(responses)) {
+      if (questionLower.includes(key)) {
+        return response;
+      }
+    }
+    
+    return `Gracias por tu pregunta sobre ${product.name}. ${product.description} Su precio es ${formatPrice(product.price)} y pertenece a la categoría ${product.category}. ¿Hay algo específico que te gustaría saber?`;
+  };
+
+  const clearConversation = () => {
+    setConversation([]);
+    setCurrentTranscription('');
+    toast({
+      title: "Conversación borrada",
+      description: "Historial de chat limpiado",
     });
   };
 
@@ -156,9 +251,9 @@ const ProductDetail = () => {
       </header>
 
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Product Image */}
-          <div className="space-y-4">
+          <div className="lg:col-span-1">
             <Card className="overflow-hidden shadow-lg">
               <div className="relative">
                 <img
@@ -180,9 +275,9 @@ const ProductDetail = () => {
           </div>
 
           {/* Product Details */}
-          <div className="space-y-6">
+          <div className="lg:col-span-1 space-y-6">
             <div>
-              <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+              <h1 className="text-3xl font-bold text-gray-900 mb-4">
                 {product.name}
               </h1>
               <div className="flex items-center space-x-4 mb-6">
@@ -202,7 +297,7 @@ const ProductDetail = () => {
 
             <div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">Descripción</h3>
-              <p className="text-gray-700 leading-relaxed text-lg">
+              <p className="text-gray-700 leading-relaxed">
                 {product.description}
               </p>
             </div>
@@ -227,39 +322,6 @@ const ProductDetail = () => {
               </Button>
             </div>
 
-            {/* Voice AI Agent Section */}
-            <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Asistente de Voz AI
-                  </h3>
-                  <Button
-                    onClick={toggleVoiceAgent}
-                    variant={isListening ? "destructive" : "default"}
-                    size="sm"
-                    className={isListening ? "bg-red-500 hover:bg-red-600" : "bg-purple-600 hover:bg-purple-700"}
-                  >
-                    {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                  </Button>
-                </div>
-                <p className="text-gray-700 text-sm mb-4">
-                  {isListening 
-                    ? "🎤 Escuchando... Hazme cualquier pregunta sobre este producto"
-                    : "Activa el asistente de voz para hacer preguntas sobre este producto"
-                  }
-                </p>
-                <div className="bg-white rounded-lg p-4 border border-purple-200">
-                  <p className="text-sm text-gray-600 italic">
-                    {isListening 
-                      ? "Asistente activado. Puedes preguntarme sobre características, compatibilidad, garantía, etc."
-                      : "Haz clic en el micrófono para activar el asistente de voz inteligente"
-                    }
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Additional Product Info */}
             <div className="grid grid-cols-2 gap-4 pt-6 border-t border-gray-200">
               <div>
@@ -279,6 +341,102 @@ const ProductDetail = () => {
                 <p className="text-sm text-gray-600">Atención 24/7</p>
               </div>
             </div>
+          </div>
+
+          {/* Voice AI Agent */}
+          <div className="lg:col-span-1">
+            <Card className="bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200 shadow-lg h-full">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center space-x-2 text-purple-800">
+                  <MessageCircle className="h-5 w-5" />
+                  <span>Asistente de Voz AI</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Microphone Control */}
+                <div className="flex items-center justify-center space-x-4">
+                  <Button
+                    onClick={toggleVoiceAgent}
+                    variant={isListening ? "destructive" : "default"}
+                    size="lg"
+                    className={`w-16 h-16 rounded-full ${
+                      isListening 
+                        ? "bg-red-500 hover:bg-red-600 animate-pulse" 
+                        : "bg-purple-600 hover:bg-purple-700"
+                    }`}
+                  >
+                    {isListening ? (
+                      <MicOff className="h-6 w-6" />
+                    ) : (
+                      <Mic className="h-6 w-6" />
+                    )}
+                  </Button>
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-gray-700">
+                      {isListening ? "Escuchando..." : "Presiona para hablar"}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Pregunta sobre el producto
+                    </p>
+                  </div>
+                </div>
+
+                {/* Current Transcription */}
+                {currentTranscription && (
+                  <div className="bg-white rounded-lg p-3 border border-purple-200">
+                    <p className="text-sm text-gray-700 italic">
+                      <span className="font-medium">Tú:</span> {currentTranscription}
+                    </p>
+                  </div>
+                )}
+
+                {/* Conversation History */}
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {conversation.map((message, index) => (
+                    <div
+                      key={index}
+                      className={`p-3 rounded-lg ${
+                        message.role === 'user'
+                          ? 'bg-blue-100 border-l-4 border-blue-500'
+                          : 'bg-green-100 border-l-4 border-green-500'
+                      }`}
+                    >
+                      <div className="flex items-start space-x-2">
+                        <span className="font-medium text-sm">
+                          {message.role === 'user' ? 'Tú:' : 'AI:'}
+                        </span>
+                        <p className="text-sm text-gray-700 flex-1">
+                          {message.content}
+                        </p>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {message.timestamp.toLocaleTimeString()}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Clear Conversation Button */}
+                {conversation.length > 0 && (
+                  <Button
+                    onClick={clearConversation}
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                  >
+                    Limpiar Conversación
+                  </Button>
+                )}
+
+                {/* Instructions */}
+                <div className="bg-white rounded-lg p-3 border border-purple-200">
+                  <p className="text-xs text-gray-600">
+                    💡 <strong>Tip:</strong> Puedes preguntar sobre características, 
+                    garantía, compatibilidad, envío, descuentos y más detalles del producto.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
