@@ -9,6 +9,41 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      cart_items: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          quantity: number
+          session_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          quantity?: number
+          session_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          quantity?: number
+          session_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cart_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category: string | null
@@ -44,11 +79,52 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_old_carts: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      find_similar_products: {
+        Args: {
+          product_id_input: string
+          match_threshold?: number
+          match_count?: number
+        }
+        Returns: {
+          id: string
+          name: string
+          description: string
+          price: number
+          image_url: string
+          category: string
+          similarity: number
+        }[]
+      }
+      get_cart_total: {
+        Args: { p_session_id: string }
+        Returns: number
+      }
       match_products: {
         Args: {
           query_embedding: string
           match_threshold?: number
           match_count?: number
+        }
+        Returns: {
+          id: string
+          name: string
+          description: string
+          price: number
+          image_url: string
+          category: string
+          similarity: number
+        }[]
+      }
+      match_products_enhanced: {
+        Args: {
+          query_embedding: string
+          match_threshold?: number
+          match_count?: number
+          category_filter?: string
         }
         Returns: {
           id: string

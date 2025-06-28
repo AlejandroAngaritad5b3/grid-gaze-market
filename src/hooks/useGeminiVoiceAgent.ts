@@ -1,8 +1,8 @@
 
 import { useState, useEffect, useRef } from 'react';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useIntentClassification } from "./useIntentClassification";
 
 interface Product {
   id: string;
@@ -34,8 +34,8 @@ export const useGeminiVoiceAgent = (currentProduct: Product | null) => {
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const geminiModelRef = useRef<any>(null);
   const { toast } = useToast();
+  const { classifyIntent } = useIntentClassification();
 
   // Initialize Gemini Live
   useEffect(() => {
@@ -44,14 +44,12 @@ export const useGeminiVoiceAgent = (currentProduct: Product | null) => {
 
   const initializeGeminiLive = async () => {
     try {
-      // Get session token from our Edge Function
       const { data: sessionData } = await supabase.functions.invoke('generate-gemini-session-token');
       
       if (!sessionData?.success) {
         throw new Error('Failed to get session token');
       }
 
-      // Initialize Gemini AI (using a mock implementation for now)
       setState(prev => ({ ...prev, isConnected: true }));
       
       toast({
@@ -69,8 +67,10 @@ export const useGeminiVoiceAgent = (currentProduct: Product | null) => {
     }
   };
 
-  const searchProducts = async (query: string) => {
+  const searchProductsWithRAG = async (query: string, intent: string, entities: string[]) => {
     try {
+      console.log('Searching with RAG:', { query, intent, entities });
+
       // Generate embedding for the query
       const { data: embeddingData } = await supabase.functions.invoke('generate-embedding', {
         body: { text: query }
@@ -80,33 +80,121 @@ export const useGeminiVoiceAgent = (currentProduct: Product | null) => {
         throw new Error('Failed to generate embedding');
       }
 
-      // Search for similar products using the match_products function
-      const { data: products, error } = await supabase.rpc('match_products', {
-        query_embedding: embeddingData.embedding,
-        match_threshold: 0.7,
-        match_count: 3
-      });
+      let products = [];
 
-      if (error) {
-        console.error('Error searching products:', error);
-        return `Error searching products: ${error.message}`;
+      // Different search strategies based on intent
+      switch (intent) {
+        case 'compare':
+          // For comparison, try to find multiple products
+          const { data: compareProducts, error: compareError } = await supabase.rpc('match_products_enhanced', {
+            query_embedding: embeddingData.embedding,
+            match_threshold: 0.6,
+            match_count: 5
+          });
+
+          if (compareError) throw compareError;
+          products = compareProducts || [];
+          break;
+
+        case 'recommend':
+          // For recommendations, find similar products to current one
+          if (currentProduct) {
+            const { data: similarProducts, error: similarError } = await supabase.rpc('find_similar_products', {
+              product_id_input: currentProduct.id,
+              match_threshold: 0.7,
+              match_count: 3
+            });
+
+            if (similarError) throw similarError;
+            products = similarProducts || [];
+          } else {
+            // Fallback to general search
+            const { data: generalProducts, error: generalError } = await supabase.rpc('match_products_enhanced', {
+              query_embedding: embeddingData.embedding,
+              match_threshold: 0.7,
+              match_count: 3
+            });
+
+            if (generalError) throw generalError;
+            products = generalProducts || [];
+          }
+          break;
+
+        default:
+          // General search with category filtering if entities detected
+          const categoryFilter = entities.find(entity => 
+            ['laptop', 'cámara', 'auriculares', 'televisor', 'smartphone'].some(cat => 
+              entity.includes(cat) || cat.includes(entity)
+            )
+          );
+
+          const { data: defaultProducts, error: defaultError } = await supabase.rpc('match_products_enhanced', {
+            query_embedding: embeddingData.embedding,
+            match_threshold: 0.7,
+            match_count: 4,
+            category_filter: categoryFilter
+          });
+
+          if (defaultError) throw defaultError;
+          products = defaultProducts || [];
       }
 
       if (!products || products.length === 0) {
-        return "No se encontraron productos similares a tu consulta.";
+        return "No encontré productos específicos para tu consulta, pero puedo ayudarte con información general sobre nuestro catálogo.";
       }
 
-      // Format the results
-      const formattedResults = products.map((product: any) => 
-        `${product.name} - ${product.description} - Precio: €${product.price} - Categoría: ${product.category || 'Sin categoría'}`
-      ).join('\n');
-
-      return `Productos encontrados:\n${formattedResults}`;
+      // Format response based on intent
+      return formatRAGResponse(products, intent, query, currentProduct);
 
     } catch (error) {
-      console.error('Error in searchProducts:', error);
+      console.error('Error in searchProductsWithRAG:', error);
       return `Error al buscar productos: ${error.message}`;
     }
+  };
+
+  const formatRAGResponse = (products: any[], intent: string, query: string, currentProduct: Product | null) => {
+    switch (intent) {
+      case 'compare':
+        if (products.length >= 2) {
+          const comparison = products.slice(0, 2).map((product, index) => 
+            `${index + 1}. ${product.name} - €${product.price} - ${product.description.substring(0, 100)}...`
+          ).join('\n\n');
+          
+          return `Aquí tienes una comparación de productos relevantes:\n\n${comparison}\n\n¿Te gustaría que profundice en alguna característica específica?`;
+        }
+        break;
+
+      case 'recommend':
+        const recommendations = products.map((product, index) => 
+          `${index + 1}. ${product.name} - €${product.price} - Similitud: ${(product.similarity * 100).toFixed(1)}%`
+        ).join('\n');
+        
+        return `Basándome en ${currentProduct ? `tu interés en ${currentProduct.name}` : 'tu consulta'}, te recomiendo:\n\n${recommendations}\n\n¿Te interesa alguno de estos productos?`;
+
+      case 'price':
+        const priceInfo = products.map(product => 
+          `${product.name}: €${product.price}`
+        ).join('\n');
+        
+        return `Información de precios:\n\n${priceInfo}`;
+
+      case 'characteristics':
+        if (currentProduct) {
+          return `${currentProduct.name} - ${currentProduct.description}\nPrecio: €${currentProduct.price}\nCategoría: ${currentProduct.category || 'General'}`;
+        }
+        
+        const detailed = products[0];
+        return `${detailed.name}:\n${detailed.description}\nPrecio: €${detailed.price}\nCategoría: ${detailed.category || 'General'}`;
+
+      default:
+        const generalInfo = products.slice(0, 3).map((product, index) => 
+          `${index + 1}. ${product.name} - €${product.price}`
+        ).join('\n');
+        
+        return `Productos relacionados con tu consulta:\n\n${generalInfo}\n\n¿Necesitas más información sobre alguno?`;
+    }
+
+    return products.map(p => `${p.name} - €${p.price}`).join(', ');
   };
 
   const startListening = async () => {
@@ -155,37 +243,35 @@ export const useGeminiVoiceAgent = (currentProduct: Product | null) => {
 
   const processAudio = async (audioBlob: Blob) => {
     try {
-      // Convert audio to base64 for processing
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64Audio = (reader.result as string).split(',')[1];
-        
-        // For now, simulate voice processing with a sample question
-        const sampleQuestions = [
-          "¿Qué productos similares tienen?",
-          "¿Cuál es el precio de este producto?",
-          "¿Qué características tiene este producto?",
-          "¿Hay productos más baratos?",
-          "¿Qué productos están en oferta?"
-        ];
-        
-        const simulatedTranscript = sampleQuestions[Math.floor(Math.random() * sampleQuestions.length)];
-        
-        setState(prev => ({ 
-          ...prev, 
-          transcript: simulatedTranscript,
-          conversation: [...prev.conversation, {
-            role: 'user',
-            content: simulatedTranscript,
-            timestamp: new Date()
-          }]
-        }));
-
-        // Process the query and get AI response
-        await generateAIResponse(simulatedTranscript);
-      };
+      // Enhanced simulation with more realistic queries
+      const contextualQuestions = currentProduct ? [
+        `¿Qué productos son similares a ${currentProduct.name}?`,
+        `¿Cuáles son las características de ${currentProduct.name}?`,
+        `¿Hay algo más barato que ${currentProduct.name}?`,
+        `Compara ${currentProduct.name} con otros productos`,
+        `¿Vale la pena comprar ${currentProduct.name}?`
+      ] : [
+        "¿Qué productos tienen en oferta?",
+        "Busco una cámara buena y barata",
+        "¿Cuáles son los mejores laptops?",
+        "Necesito auriculares inalámbricos",
+        "¿Qué smartphone me recomiendan?"
+      ];
       
-      reader.readAsDataURL(audioBlob);
+      const simulatedTranscript = contextualQuestions[Math.floor(Math.random() * contextualQuestions.length)];
+      
+      setState(prev => ({ 
+        ...prev, 
+        transcript: simulatedTranscript,
+        conversation: [...prev.conversation, {
+          role: 'user',
+          content: simulatedTranscript,
+          timestamp: new Date()
+        }]
+      }));
+
+      // Process with intent classification and RAG
+      await generateEnhancedAIResponse(simulatedTranscript);
 
     } catch (error) {
       console.error('Error processing audio:', error);
@@ -197,24 +283,20 @@ export const useGeminiVoiceAgent = (currentProduct: Product | null) => {
     }
   };
 
-  const generateAIResponse = async (userQuery: string) => {
+  const generateEnhancedAIResponse = async (userQuery: string) => {
     try {
+      // Classify user intent
+      const intentData = await classifyIntent(userQuery);
+      console.log('Intent classified:', intentData);
+
       let response = '';
 
-      // Check if the query is about product search
-      if (userQuery.toLowerCase().includes('productos') || 
-          userQuery.toLowerCase().includes('buscar') ||
-          userQuery.toLowerCase().includes('similar') ||
-          userQuery.toLowerCase().includes('precio') ||
-          userQuery.toLowerCase().includes('oferta')) {
-        
-        // Use RAG to search for products
-        response = await searchProducts(userQuery);
-      } else if (currentProduct) {
-        // Answer about the current product
-        response = `Estás viendo ${currentProduct.name}. ${currentProduct.description} Su precio es €${currentProduct.price}. ${currentProduct.category ? `Está en la categoría ${currentProduct.category}.` : ''} ¿Hay algo específico que te gustaría saber sobre este producto?`;
-      } else {
-        response = "Hola, soy tu asistente de voz. Puedo ayudarte a buscar productos y responder preguntas sobre ellos. ¿En qué puedo ayudarte?";
+      // Generate response using RAG
+      response = await searchProductsWithRAG(userQuery, intentData.intent, intentData.entities);
+
+      // Add contextual information
+      if (currentProduct && intentData.intent !== 'recommend') {
+        response += `\n\nActualmente estás viendo: ${currentProduct.name} (€${currentProduct.price})`;
       }
 
       setState(prev => ({
@@ -227,20 +309,37 @@ export const useGeminiVoiceAgent = (currentProduct: Product | null) => {
         transcript: ''
       }));
 
-      // Simulate voice synthesis (you can integrate with Web Speech API here)
+      // Enhanced voice synthesis with better Spanish pronunciation
       if ('speechSynthesis' in window) {
         const utterance = new SpeechSynthesisUtterance(response);
         utterance.lang = 'es-ES';
+        utterance.rate = 0.9;
+        utterance.pitch = 1.1;
+        
+        // Try to use a Spanish voice if available
+        const voices = speechSynthesis.getVoices();
+        const spanishVoice = voices.find(voice => voice.lang.includes('es'));
+        if (spanishVoice) {
+          utterance.voice = spanishVoice;
+        }
+        
         speechSynthesis.speak(utterance);
       }
 
     } catch (error) {
-      console.error('Error generating AI response:', error);
-      toast({
-        title: "Error de IA",
-        description: "No se pudo generar una respuesta",
-        variant: "destructive",
-      });
+      console.error('Error generating enhanced AI response:', error);
+      
+      const errorResponse = "Disculpa, hubo un problema procesando tu consulta. ¿Podrías intentar de nuevo?";
+      
+      setState(prev => ({
+        ...prev,
+        conversation: [...prev.conversation, {
+          role: 'assistant',
+          content: errorResponse,
+          timestamp: new Date()
+        }],
+        transcript: ''
+      }));
     }
   };
 

@@ -6,7 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, ArrowLeft, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useCart } from "@/hooks/useCart";
 import VoiceAgent from "@/components/VoiceAgent";
+import CartIcon from "@/components/CartIcon";
+
 interface Product {
   id: string;
   name: string;
@@ -15,6 +18,7 @@ interface Product {
   image_url: string | null;
   category: string | null;
 }
+
 const ProductDetail = () => {
   const {
     id
@@ -27,6 +31,8 @@ const ProductDetail = () => {
   const {
     toast
   } = useToast();
+  const { addToCart, isLoading: cartLoading } = useCart();
+
   useEffect(() => {
     if (id) {
       fetchProduct(id);
@@ -85,12 +91,23 @@ const ProductDetail = () => {
     }
     return `https://images.unsplash.com/${imageUrl}?w=800&h=600&fit=crop`;
   };
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
+    if (!product) return;
+    
+    await addToCart(product.id, 1);
+  };
+
+  const handleBuyNow = async () => {
+    if (!product) return;
+    
+    await addToCart(product.id, 1);
+    // Here you could navigate to checkout page
     toast({
       title: "Producto añadido",
-      description: `${product?.name} se ha añadido al carrito`
+      description: "Producto añadido al carrito. Redirigiendo al checkout...",
     });
   };
+
   if (loading) {
     return <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="container mx-auto px-4 py-12">
@@ -122,8 +139,9 @@ const ProductDetail = () => {
               <ArrowLeft className="h-4 w-4" />
               <span>Volver al catálogo</span>
             </Button>
-            <div>
+            <div className="flex items-center space-x-4">
               <h1 className="text-2xl font-bold text-gray-900">Tech Market</h1>
+              <CartIcon />
             </div>
           </div>
         </div>
@@ -176,13 +194,24 @@ const ProductDetail = () => {
 
             {/* Add to Cart Button */}
             <div className="space-y-4">
-              <Button onClick={handleAddToCart} size="lg" className="w-full text-white py-3 text-lg font-semibold bg-orange-500 hover:bg-orange-400">
+              <Button 
+                onClick={handleAddToCart} 
+                disabled={cartLoading}
+                size="lg" 
+                className="w-full text-white py-3 text-lg font-semibold bg-orange-500 hover:bg-orange-400 disabled:opacity-50"
+              >
                 <ShoppingCart className="h-5 w-5 mr-2" />
-                Añadir al Carrito
+                {cartLoading ? 'Añadiendo...' : 'Añadir al Carrito'}
               </Button>
               
-              <Button variant="outline" size="lg" className="w-full py-3 text-lg font-semibold bg-[blue600] text-gray-50 bg-blue-700 hover:bg-blue-600">
-                Comprar Ahora
+              <Button 
+                onClick={handleBuyNow}
+                disabled={cartLoading}
+                variant="outline" 
+                size="lg" 
+                className="w-full py-3 text-lg font-semibold bg-blue-700 text-white hover:bg-blue-600 disabled:opacity-50"
+              >
+                {cartLoading ? 'Procesando...' : 'Comprar Ahora'}
               </Button>
             </div>
 
@@ -215,4 +244,5 @@ const ProductDetail = () => {
       </div>
     </div>;
 };
+
 export default ProductDetail;

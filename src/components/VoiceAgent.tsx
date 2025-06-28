@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mic, MicOff, MessageCircle } from "lucide-react";
+import { Mic, MicOff, MessageCircle, Brain, Zap } from "lucide-react";
 import { useGeminiVoiceAgent } from "@/hooks/useGeminiVoiceAgent";
 
 interface Product {
@@ -41,13 +41,18 @@ const VoiceAgent = ({ product }: VoiceAgentProps) => {
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center space-x-2 text-purple-800">
           <MessageCircle className="h-5 w-5" />
-          <span>Asistente Gemini Live</span>
+          <span>Asistente IA Mejorado</span>
           {isConnected && (
-            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-              Conectado
+            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full flex items-center">
+              <Zap className="h-3 w-3 mr-1" />
+              RAG Activo
             </span>
           )}
         </CardTitle>
+        <div className="flex items-center space-x-2 text-sm text-purple-600">
+          <Brain className="h-4 w-4" />
+          <span>Con búsqueda inteligente y clasificación de intenciones</span>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Microphone Control */}
@@ -74,7 +79,7 @@ const VoiceAgent = ({ product }: VoiceAgentProps) => {
               {isListening ? "Escuchando..." : "Presiona para hablar"}
             </p>
             <p className="text-xs text-gray-500">
-              Pregunta sobre productos
+              Pregunta, compara, recomienda
             </p>
           </div>
         </div>
@@ -101,9 +106,9 @@ const VoiceAgent = ({ product }: VoiceAgentProps) => {
             >
               <div className="flex items-start space-x-2">
                 <span className="font-medium text-sm">
-                  {message.role === 'user' ? 'Tú:' : 'Gemini:'}
+                  {message.role === 'user' ? 'Tú:' : 'IA:'}
                 </span>
-                <p className="text-sm text-gray-700 flex-1">
+                <p className="text-sm text-gray-700 flex-1 whitespace-pre-line">
                   {message.content}
                 </p>
               </div>
@@ -126,12 +131,17 @@ const VoiceAgent = ({ product }: VoiceAgentProps) => {
           </Button>
         )}
 
-        {/* Instructions */}
+        {/* Enhanced Features Info */}
         <div className="bg-white rounded-lg p-3 border border-purple-200">
-          <p className="text-xs text-gray-600">
-            💡 <strong>Tip:</strong> Puedes preguntar sobre productos similares, 
-            precios, características, ofertas y más usando tu voz.
+          <p className="text-xs text-gray-600 mb-2">
+            <strong>🚀 Nuevas capacidades:</strong>
           </p>
+          <ul className="text-xs text-gray-600 space-y-1">
+            <li>• <strong>Comparaciones:</strong> "Compara este producto con..."</li>
+            <li>• <strong>Recomendaciones:</strong> "¿Qué productos similares tienes?"</li>
+            <li>• <strong>Búsqueda contextual:</strong> Encuentra productos relevantes</li>
+            <li>• <strong>Clasificación de intenciones:</strong> Comprende mejor tus preguntas</li>
+          </ul>
         </div>
       </CardContent>
     </Card>
