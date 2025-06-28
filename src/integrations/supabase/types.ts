@@ -44,6 +44,27 @@ export type Database = {
           },
         ]
       }
+      documents: {
+        Row: {
+          content: string | null
+          embedding: string | null
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          content?: string | null
+          embedding?: string | null
+          id: string
+          metadata?: Json | null
+        }
+        Update: {
+          content?: string | null
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           category: string | null
@@ -102,6 +123,15 @@ export type Database = {
       get_cart_total: {
         Args: { p_session_id: string }
         Returns: number
+      }
+      match_documents: {
+        Args: { query_embedding: string; filter?: Json }
+        Returns: {
+          id: string
+          content: string
+          metadata: Json
+          similarity: number
+        }[]
       }
       match_products: {
         Args: {

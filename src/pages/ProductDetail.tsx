@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ShoppingCart, ArrowLeft, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/hooks/useCart";
-import VoiceAgent from "@/components/VoiceAgent";
+import EnhancedVoiceAgent from "@/components/EnhancedVoiceAgent";
 import CartIcon from "@/components/CartIcon";
 
 interface Product {
@@ -236,9 +236,9 @@ const ProductDetail = () => {
             </div>
           </div>
 
-          {/* Voice AI Agent */}
+          {/* Enhanced Voice AI Agent */}
           <div className="lg:col-span-1">
-            <VoiceAgent product={product} />
+            <EnhancedVoiceAgent product={product} />
           </div>
         </div>
       </div>
