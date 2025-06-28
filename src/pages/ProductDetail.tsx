@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/hooks/useCart";
 import EnhancedVoiceAgent from "@/components/EnhancedVoiceAgent";
 import CartIcon from "@/components/CartIcon";
+import DynamicRecommendations from "@/components/DynamicRecommendations";
 
 interface Product {
   id: string;
@@ -141,6 +142,13 @@ const ProductDetail = () => {
             </Button>
             <div className="flex items-center space-x-4">
               <h1 className="text-2xl font-bold text-gray-900">Tech Market</h1>
+              <Button 
+                variant="outline" 
+                onClick={() => navigate('/admin')}
+                className="text-sm"
+              >
+                Admin Dashboard
+              </Button>
               <CartIcon />
             </div>
           </div>
@@ -148,7 +156,7 @@ const ProductDetail = () => {
       </header>
 
       <div className="container mx-auto px-4 py-12 bg-yellow-50">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Product Image */}
           <div className="lg:col-span-1">
             <Card className="overflow-hidden shadow-lg">
@@ -234,6 +242,11 @@ const ProductDetail = () => {
                 <p className="text-sm text-gray-600">Atención 24/7</p>
               </div>
             </div>
+          </div>
+
+          {/* Dynamic Recommendations */}
+          <div className="lg:col-span-1">
+            <DynamicRecommendations currentProduct={product} />
           </div>
 
           {/* Enhanced Voice AI Agent */}
