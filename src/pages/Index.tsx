@@ -136,6 +136,71 @@ const Index = () => {
             Descubre productos tecnológicos de última generación con precios increíbles
           </p>
           
+          {/* Featured Products at the top */}
+          {products.length > 0 && (
+            <div className="mb-12">
+              <h3 className="text-2xl font-semibold text-gray-900 mb-6">Productos Destacados</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+                {products.slice(0, 3).map((product) => (
+                  <Card key={product.id} className="group hover:shadow-lg transition-all duration-300 cursor-pointer bg-white/90 backdrop-blur-sm">
+                    <div className="relative overflow-hidden rounded-t-lg">
+                      <img 
+                        src={getImageUrl(product.image_url)} 
+                        alt={product.name} 
+                        className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                        onClick={() => handleProductClick(product.id)}
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop';
+                        }}
+                      />
+                      {product.category && (
+                        <Badge className="absolute top-3 left-3 bg-blue-600 hover:bg-blue-700 text-white">
+                          {product.category}
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    <CardHeader onClick={() => handleProductClick(product.id)} className="pb-2">
+                      <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                        {product.name}
+                      </CardTitle>
+                    </CardHeader>
+                    
+                    <CardContent onClick={() => handleProductClick(product.id)} className="pt-0">
+                      <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                        {product.description}
+                      </p>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xl font-bold text-blue-600">
+                          {formatPrice(product.price)}
+                        </span>
+                        <div className="flex space-x-1">
+                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                          <Star className="h-4 w-4 text-gray-300" />
+                        </div>
+                      </div>
+                      <Button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddToCart(product.id);
+                        }}
+                        disabled={cartLoading}
+                        className="w-full bg-orange-500 hover:bg-orange-400 text-white font-semibold py-2 text-sm"
+                      >
+                        <ShoppingCart className="h-4 w-4 mr-2" />
+                        {cartLoading ? 'Añadiendo...' : 'Añadir al Carrito'}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+          
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 max-w-4xl mx-auto">
             <Card className="bg-white/80 backdrop-blur-sm">
@@ -169,8 +234,8 @@ const Index = () => {
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Nuestros Productos</h2>
-            <p className="text-xl text-gray-600">Explora nuestra colección de productos tecnológicos</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Todos Nuestros Productos</h2>
+            <p className="text-xl text-gray-600">Explora nuestra colección completa de productos tecnológicos</p>
           </div>
 
           {products.length === 0 ? (
