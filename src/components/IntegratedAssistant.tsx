@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -64,11 +65,11 @@ const IntegratedAssistant = ({ product }: IntegratedAssistantProps) => {
           <span>Asistente Integrado</span>
           <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full flex items-center">
             <Zap className="h-3 w-3 mr-1" />
-            RAG + Gemini Live
+            Gemini Live + RAG
           </span>
         </CardTitle>
         <div className="text-sm text-purple-600 space-y-1">
-          <div>🎤 Voz → localhost:8502/chat-binary (Gemini Live)</div>
+          <div>🎤 Voz → localhost:8502 (Gemini Live con datos Supabase)</div>
           <div>💬 Texto → localhost:8501 (RAG Agent)</div>
         </div>
       </CardHeader>

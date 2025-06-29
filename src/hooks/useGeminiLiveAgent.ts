@@ -1,3 +1,4 @@
+
 import { useState, useRef } from 'react';
 import { useToast } from "@/hooks/use-toast";
 
@@ -96,10 +97,12 @@ export const useGeminiLiveAgent = (currentProduct: Product | null) => {
     setIsProcessing(true);
     
     try {
-      console.log('Enviando audio a Gemini Live Agent (binary):', audioBlob.size);
+      console.log('Enviando audio a Gemini Live Agent:', audioBlob.size);
       
       const formData = new FormData();
       formData.append('audio', audioBlob, 'voice.webm');
+      
+      // Incluir contexto del producto actual y base de conocimiento
       if (currentProduct) {
         formData.append('product_context', JSON.stringify({
           id: currentProduct.id,
@@ -109,8 +112,18 @@ export const useGeminiLiveAgent = (currentProduct: Product | null) => {
           category: currentProduct.category
         }));
       }
+      
+      // Incluir instrucciones para usar datos de Supabase
+      formData.append('system_prompt', JSON.stringify({
+        role: 'system',
+        content: `Eres un asistente especializado en productos de nuestra tienda. 
+        Toda tu información debe basarse exclusivamente en los datos de productos almacenados en Supabase.
+        Si tienes contexto de un producto específico, úsalo para dar respuestas detalladas.
+        Puedes recomendar productos similares, comparar características, explicar ventajas y ayudar con decisiones de compra.
+        Siempre mantén un tono amigable y profesional.`
+      }));
 
-      const response = await fetch('http://localhost:8502/api/voice/chat-binary', {
+      const response = await fetch('http://localhost:8502/api/voice/chat', {
         method: 'POST',
         body: formData
       });
@@ -120,7 +133,7 @@ export const useGeminiLiveAgent = (currentProduct: Product | null) => {
       }
 
       const data = await response.json();
-      console.log('Respuesta de Gemini Live (binary):', data);
+      console.log('Respuesta de Gemini Live:', data);
 
       // Agregar mensaje del usuario (transcripción)
       if (data.transcript) {
