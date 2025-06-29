@@ -1,12 +1,15 @@
+
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Eye, Star } from "lucide-react";
+import { ShoppingCart, Star, TrendingUp, Users, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useCart } from "@/hooks/useCart";
+import { useNavigate } from "react-router-dom";
+import CartIcon from "@/components/CartIcon";
+
 interface Product {
   id: string;
   name: string;
@@ -15,33 +18,36 @@ interface Product {
   image_url: string | null;
   category: string | null;
 }
+
 const Index = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
+  const { addToCart, isLoading: cartLoading } = useCart();
   const navigate = useNavigate();
+
   useEffect(() => {
     fetchProducts();
   }, []);
+
   const fetchProducts = async () => {
     try {
-      console.log('Fetching products from Supabase...');
-      const {
-        data,
-        error
-      } = await supabase.from('products').select('*').order('name');
+      console.log('Fetching products...');
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false });
+
       if (error) {
         console.error('Error fetching products:', error);
         toast({
           title: "Error",
           description: "No se pudieron cargar los productos",
-          variant: "destructive"
+          variant: "destructive",
         });
         return;
       }
+
       console.log('Products fetched:', data);
       setProducts(data || []);
     } catch (error) {
@@ -49,200 +55,197 @@ const Index = () => {
       toast({
         title: "Error",
         description: "Error inesperado al cargar los productos",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-ES', {
       style: 'currency',
       currency: 'EUR'
     }).format(price);
   };
+
   const getImageUrl = (imageUrl: string | null) => {
     if (!imageUrl) {
       return 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop';
     }
-
-    // If it's already a full URL, return as is
     if (imageUrl.startsWith('http')) {
       return imageUrl;
     }
-
-    // If it's an Unsplash ID, construct the URL
     return `https://images.unsplash.com/${imageUrl}?w=400&h=300&fit=crop`;
   };
-  const handleProductClick = (product: Product) => {
-    navigate(`/product/${product.id}`);
+
+  const handleAddToCart = async (productId: string) => {
+    await addToCart(productId, 1);
   };
-  const handleQuickView = (e: React.MouseEvent, product: Product) => {
-    e.stopPropagation();
-    setSelectedProduct(product);
+
+  const handleProductClick = (productId: string) => {
+    navigate(`/product/${productId}`);
   };
+
   if (loading) {
-    return <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="container mx-auto px-4 py-12">
-          <div className="text-center mb-12">
-            <div className="animate-pulse">
-              <div className="h-12 bg-gray-300 rounded w-64 mx-auto mb-4"></div>
-              <div className="h-6 bg-gray-200 rounded w-96 mx-auto"></div>
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-300 rounded w-32 mb-8"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="h-80 bg-gray-300 rounded-xl"></div>
+              ))}
             </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {[...Array(8)].map((_, i) => <div key={i} className="animate-pulse">
-                <div className="bg-white rounded-xl p-4 shadow-sm">
-                  <div className="h-48 bg-gray-300 rounded-lg mb-4"></div>
-                  <div className="h-4 bg-gray-300 rounded mb-2"></div>
-                  <div className="h-6 bg-gray-300 rounded w-20"></div>
-                </div>
-              </div>)}
           </div>
         </div>
-      </div>;
+      </div>
+    );
   }
-  return <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-6 bg-[FFD-300] bg-[#ffd300]">
+        <div className="container mx-auto px-4 py-6 bg-[#ffd300]">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-950">Tech Market</h1>
-              <p className="mt-1 text-zinc-950">Descubre productos increíbles</p>
-            </div>
+            <h1 className="text-3xl font-bold text-gray-900">Tech Market</h1>
             <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm" className="text-gray-950 bg-orange-500 hover:bg-orange-400">
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                Carrito
+              <Button 
+                variant="outline" 
+                onClick={() => navigate('/admin')}
+                className="flex items-center space-x-2"
+              >
+                <TrendingUp className="h-4 w-4" />
+                <span>Admin Dashboard</span>
               </Button>
+              <CartIcon />
             </div>
           </div>
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-12 bg-amber-50">
-        {/* Hero Section */}
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Productos Destacados
+      {/* Hero Section */}
+      <section className="bg-yellow-50 py-16">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-4xl font-bold text-gray-900 mb-6">
+            Encuentra la mejor tecnología
           </h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Explora nuestra selección curada de productos de alta calidad
+          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+            Descubre productos tecnológicos de última generación con precios increíbles
           </p>
-        </div>
-
-        {/* Products Grid */}
-        {products.length === 0 ? <div className="text-center py-12">
-            <div className="bg-white rounded-xl p-8 shadow-sm max-w-md mx-auto">
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No hay productos disponibles</h3>
-              <p className="text-gray-600">Los productos aparecerán aquí una vez que se agreguen a la base de datos.</p>
-            </div>
-          </div> : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
-            {products.map(product => <Card key={product.id} className="group cursor-pointer bg-white hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border-0 shadow-sm overflow-hidden" onClick={() => handleProductClick(product)}>
-                <div className="relative overflow-hidden">
-                  <img src={getImageUrl(product.image_url)} alt={product.name} className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300" onError={e => {
-              const target = e.target as HTMLImageElement;
-              target.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop';
-            }} />
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <Button size="sm" variant="secondary" className="bg-white/90 backdrop-blur-sm" onClick={e => handleQuickView(e, product)}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  {product.category && <Badge className="absolute top-2 left-2 bg-blue-600 hover:bg-blue-700">
-                      {product.category}
-                    </Badge>}
-                </div>
-                <CardContent className="p-4">
-                  <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
-                    {product.name}
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                    {product.description}
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xl font-bold text-blue-600">
-                      {formatPrice(product.price)}
-                    </span>
-                    <div className="flex items-center space-x-1">
-                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      <span className="text-sm text-gray-600">4.5</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>)}
-          </div>}
-
-        {/* Product Detail Modal */}
-        <Dialog open={!!selectedProduct} onOpenChange={() => setSelectedProduct(null)}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            {selectedProduct && <>
-                <DialogHeader>
-                  <DialogTitle className="text-2xl font-bold text-gray-900">
-                    {selectedProduct.name}
-                  </DialogTitle>
-                </DialogHeader>
-                <div className="space-y-6">
-                  <div className="relative">
-                    <img src={getImageUrl(selectedProduct.image_url)} alt={selectedProduct.name} className="w-full h-64 object-cover rounded-lg" onError={e => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=600&h=400&fit=crop';
-                }} />
-                    {selectedProduct.category && <Badge className="absolute top-3 left-3 bg-blue-600 hover:bg-blue-700">
-                        {selectedProduct.category}
-                      </Badge>}
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-3xl font-bold text-blue-600">
-                        {formatPrice(selectedProduct.price)}
-                      </span>
-                      <div className="flex items-center space-x-1">
-                        <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                        <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                        <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                        <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                        <Star className="h-5 w-5 text-gray-300" />
-                        <span className="text-sm text-gray-600 ml-2">(4.5)</span>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-2">Descripción</h4>
-                      <p className="text-gray-700 leading-relaxed">
-                        {selectedProduct.description}
-                      </p>
-                    </div>
-
-                    <div className="flex space-x-3 pt-4">
-                      <Button className="flex-1 bg-blue-600 hover:bg-blue-700" onClick={() => navigate(`/product/${selectedProduct.id}`)}>
-                        Ver Detalles Completos
-                      </Button>
-                      <Button variant="outline" className="px-6">
-                        <ShoppingCart className="h-4 w-4 mr-2" />
-                        Añadir
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </>}
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Footer */}
-      <footer className="text-white py-12 mt-16 bg-[ffd300] bg-[#282821]">
-        <div className="container mx-auto px-4">
-          <div className="text-center">
-            <h3 className="text-2xl font-bold mb-4">Tech Market</h3>
-            <p className="text-gray-400 max-w-2xl mx-auto">
-              Tu marketplace de confianza para encontrar productos de calidad al mejor precio.
-            </p>
+          
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 max-w-4xl mx-auto">
+            <Card className="bg-white/80 backdrop-blur-sm">
+              <CardContent className="p-6 text-center">
+                <ShoppingCart className="h-8 w-8 text-blue-600 mx-auto mb-3" />
+                <h3 className="font-semibold text-gray-900 mb-2">Productos de Calidad</h3>
+                <p className="text-sm text-gray-600">Solo los mejores productos tecnológicos</p>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-white/80 backdrop-blur-sm">
+              <CardContent className="p-6 text-center">
+                <Users className="h-8 w-8 text-green-600 mx-auto mb-3" />
+                <h3 className="font-semibold text-gray-900 mb-2">Miles de Clientes</h3>
+                <p className="text-sm text-gray-600">Confianza de usuarios satisfechos</p>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-white/80 backdrop-blur-sm">
+              <CardContent className="p-6 text-center">
+                <MessageSquare className="h-8 w-8 text-purple-600 mx-auto mb-3" />
+                <h3 className="font-semibold text-gray-900 mb-2">Soporte 24/7</h3>
+                <p className="text-sm text-gray-600">Atención personalizada siempre</p>
+              </CardContent>
+            </Card>
           </div>
         </div>
-      </footer>
-    </div>;
+      </section>
+
+      {/* Products Section */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Nuestros Productos</h2>
+            <p className="text-xl text-gray-600">Explora nuestra colección de productos tecnológicos</p>
+          </div>
+
+          {products.length === 0 ? (
+            <div className="text-center py-12">
+              <ShoppingCart className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-500 mb-2">No hay productos disponibles</h3>
+              <p className="text-gray-400">Vuelve más tarde para ver nuevos productos</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {products.map((product) => (
+                <Card key={product.id} className="group hover:shadow-xl transition-all duration-300 cursor-pointer border-0 shadow-lg">
+                  <div className="relative overflow-hidden rounded-t-lg">
+                    <img 
+                      src={getImageUrl(product.image_url)} 
+                      alt={product.name} 
+                      className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+                      onClick={() => handleProductClick(product.id)}
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop';
+                      }}
+                    />
+                    {product.category && (
+                      <Badge className="absolute top-3 left-3 bg-blue-600 hover:bg-blue-700 text-white">
+                        {product.category}
+                      </Badge>
+                    )}
+                    <div className="absolute top-3 right-3 flex space-x-1">
+                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                      <Star className="h-4 w-4 text-gray-300" />
+                    </div>
+                  </div>
+                  
+                  <CardHeader onClick={() => handleProductClick(product.id)}>
+                    <CardTitle className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                      {product.name}
+                    </CardTitle>
+                  </CardHeader>
+                  
+                  <CardContent onClick={() => handleProductClick(product.id)}>
+                    <p className="text-gray-600 mb-4 line-clamp-2">
+                      {product.description}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-2xl font-bold text-blue-600">
+                        {formatPrice(product.price)}
+                      </span>
+                    </div>
+                  </CardContent>
+                  
+                  <div className="px-6 pb-6">
+                    <Button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddToCart(product.id);
+                      }}
+                      disabled={cartLoading}
+                      className="w-full bg-orange-500 hover:bg-orange-400 text-white font-semibold py-2"
+                    >
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      {cartLoading ? 'Añadiendo...' : 'Añadir al Carrito'}
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
 };
+
 export default Index;

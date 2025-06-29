@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShoppingCart, Plus, Minus, X, Trash2, AlertCircle } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
+import { useNavigate } from "react-router-dom";
 
 interface CartModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ interface CartModalProps {
 
 const CartModal = ({ isOpen, onClose }: CartModalProps) => {
   const { cartItems, removeFromCart, updateQuantity, clearCart, totalItems, isLoading } = useCart();
+  const navigate = useNavigate();
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-ES', {
@@ -42,6 +44,11 @@ const CartModal = ({ isOpen, onClose }: CartModalProps) => {
     } else {
       updateQuantity(itemId, newQuantity);
     }
+  };
+
+  const handleBuyNow = () => {
+    onClose();
+    navigate('/checkout');
   };
 
   return (
@@ -180,14 +187,11 @@ const CartModal = ({ isOpen, onClose }: CartModalProps) => {
                   </Button>
                   
                   <Button 
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                    onClick={() => {
-                      console.log('Procesando compra con productos:', cartItems);
-                      alert('Funcionalidad de pago en desarrollo');
-                    }}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                    onClick={handleBuyNow}
                     disabled={isLoading}
                   >
-                    {isLoading ? 'Procesando...' : 'Proceder al pago'}
+                    {isLoading ? 'Procesando...' : 'Comprar'}
                   </Button>
                 </div>
 

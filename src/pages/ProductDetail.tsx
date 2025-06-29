@@ -103,10 +103,7 @@ const ProductDetail = () => {
   const handleBuyNow = async () => {
     if (!product) return;
     await addToCart(product.id, 1);
-    toast({
-      title: "Producto añadido",
-      description: "Producto añadido al carrito. Redirigiendo al checkout...",
-    });
+    navigate('/checkout');
   };
 
   if (loading) {
@@ -151,13 +148,6 @@ const ProductDetail = () => {
             </Button>
             <div className="flex items-center space-x-4">
               <h1 className="text-2xl font-bold text-gray-900">Tech Market</h1>
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/admin')}
-                className="text-sm"
-              >
-                Admin Dashboard
-              </Button>
               <CartIcon />
             </div>
           </div>
