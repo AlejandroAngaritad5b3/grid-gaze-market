@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
@@ -7,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ShoppingCart, ArrowLeft, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/hooks/useCart";
-import EnhancedVoiceAgent from "@/components/EnhancedVoiceAgent";
+import IntegratedAssistant from "@/components/IntegratedAssistant";
 import CartIcon from "@/components/CartIcon";
 import DynamicRecommendations from "@/components/DynamicRecommendations";
 
@@ -21,17 +22,11 @@ interface Product {
 }
 
 const ProductDetail = () => {
-  const {
-    id
-  } = useParams<{
-    id: string;
-  }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
   const { addToCart, isLoading: cartLoading } = useCart();
 
   useEffect(() => {
@@ -39,31 +34,36 @@ const ProductDetail = () => {
       fetchProduct(id);
     }
   }, [id]);
+
   const fetchProduct = async (productId: string) => {
     try {
       console.log('Fetching product with ID:', productId);
-      const {
-        data,
-        error
-      } = await supabase.from('products').select('*').eq('id', productId).maybeSingle();
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', productId)
+        .maybeSingle();
+
       if (error) {
         console.error('Error fetching product:', error);
         toast({
           title: "Error",
           description: "No se pudo cargar el producto",
-          variant: "destructive"
+          variant: "destructive",
         });
         return;
       }
+
       if (!data) {
         toast({
           title: "Producto no encontrado",
           description: "El producto que buscas no existe",
-          variant: "destructive"
+          variant: "destructive",
         });
         navigate('/');
         return;
       }
+
       console.log('Product fetched:', data);
       setProduct(data);
     } catch (error) {
@@ -71,18 +71,20 @@ const ProductDetail = () => {
       toast({
         title: "Error",
         description: "Error inesperado al cargar el producto",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-ES', {
       style: 'currency',
       currency: 'EUR'
     }).format(price);
   };
+
   const getImageUrl = (imageUrl: string | null) => {
     if (!imageUrl) {
       return 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop';
@@ -92,17 +94,15 @@ const ProductDetail = () => {
     }
     return `https://images.unsplash.com/${imageUrl}?w=800&h=600&fit=crop`;
   };
+
   const handleAddToCart = async () => {
     if (!product) return;
-    
     await addToCart(product.id, 1);
   };
 
   const handleBuyNow = async () => {
     if (!product) return;
-    
     await addToCart(product.id, 1);
-    // Here you could navigate to checkout page
     toast({
       title: "Producto añadido",
       description: "Producto añadido al carrito. Redirigiendo al checkout...",
@@ -110,7 +110,8 @@ const ProductDetail = () => {
   };
 
   if (loading) {
-    return <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="container mx-auto px-4 py-12">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-300 rounded w-32 mb-8"></div>
@@ -126,17 +127,25 @@ const ProductDetail = () => {
             </div>
           </div>
         </div>
-      </div>;
+      </div>
+    );
   }
+
   if (!product) {
     return null;
   }
-  return <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-40">
         <div className="container mx-auto px-4 py-6 bg-[#ffd300]">
           <div className="flex items-center justify-between">
-            <Button variant="ghost" onClick={() => navigate('/')} className="flex items-center space-x-2 bg-yellow-400 hover:bg-yellow-300">
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/')} 
+              className="flex items-center space-x-2 bg-yellow-400 hover:bg-yellow-300"
+            >
               <ArrowLeft className="h-4 w-4" />
               <span>Volver al catálogo</span>
             </Button>
@@ -161,13 +170,20 @@ const ProductDetail = () => {
           <div className="lg:col-span-1">
             <Card className="overflow-hidden shadow-lg">
               <div className="relative">
-                <img src={getImageUrl(product.image_url)} alt={product.name} className="w-full h-96 lg:h-[500px] object-cover" onError={e => {
-                const target = e.target as HTMLImageElement;
-                target.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop';
-              }} />
-                {product.category && <Badge className="absolute top-4 left-4 bg-blue-600 hover:bg-blue-700 text-white">
+                <img 
+                  src={getImageUrl(product.image_url)} 
+                  alt={product.name} 
+                  className="w-full h-96 lg:h-[500px] object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop';
+                  }}
+                />
+                {product.category && (
+                  <Badge className="absolute top-4 left-4 bg-blue-600 hover:bg-blue-700 text-white">
                     {product.category}
-                  </Badge>}
+                  </Badge>
+                )}
               </div>
             </Card>
           </div>
@@ -249,13 +265,14 @@ const ProductDetail = () => {
             <DynamicRecommendations currentProduct={product} />
           </div>
 
-          {/* Enhanced Voice AI Agent */}
+          {/* Integrated Assistant */}
           <div className="lg:col-span-1">
-            <EnhancedVoiceAgent product={product} />
+            <IntegratedAssistant product={product} />
           </div>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
 
 export default ProductDetail;
