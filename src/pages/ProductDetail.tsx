@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
@@ -105,8 +104,9 @@ const ProductDetail = () => {
     await addToCart(product.id, 1);
     toast({
       title: "Producto añadido",
-      description: "Producto añadido al carrito. Redirigiendo al checkout...",
+      description: "Redirigiendo al checkout...",
     });
+    navigate('/checkout');
   };
 
   if (loading) {
