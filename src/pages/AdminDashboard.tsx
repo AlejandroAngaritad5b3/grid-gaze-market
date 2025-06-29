@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,10 +8,11 @@ import {
 } from 'recharts';
 import { 
   Users, ShoppingCart, MessageSquare, TrendingUp, 
-  Eye, Clock, Zap, Activity 
+  Eye, Clock, Zap, Activity, ArrowLeft
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface DashboardMetrics {
   totalProducts: number;
@@ -41,6 +41,7 @@ const AdminDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [realTimeData, setRealTimeData] = useState<any[]>([]);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadDashboardMetrics();
@@ -146,6 +147,10 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleGoBack = () => {
+    navigate('/');
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
@@ -180,11 +185,22 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       <div className="container mx-auto space-y-6">
-        {/* Header */}
+        {/* Header with Back Button */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Panel de Administración</h1>
-            <p className="text-gray-600">RAG + IA Dashboard - Métricas en tiempo real</p>
+          <div className="flex items-center space-x-4">
+            <Button
+              onClick={handleGoBack}
+              variant="outline"
+              size="sm"
+              className="flex items-center space-x-2 hover:bg-gray-100"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Volver al inicio</span>
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Panel de Administración</h1>
+              <p className="text-gray-600">RAG + IA Dashboard - Métricas en tiempo real</p>
+            </div>
           </div>
           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
             <Activity className="h-3 w-3 mr-1" />

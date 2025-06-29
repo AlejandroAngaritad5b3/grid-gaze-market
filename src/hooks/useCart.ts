@@ -35,6 +35,8 @@ export const useCart = () => {
   // Load cart items
   const loadCart = async () => {
     try {
+      console.log('Loading cart for session:', sessionId);
+      
       const { data, error } = await supabase
         .from('cart_items')
         .select(`
@@ -51,42 +53,82 @@ export const useCart = () => {
 
       if (error) {
         console.error('Error loading cart:', error);
+        toast({
+          title: "Error",
+          description: "No se pudo cargar el carrito",
+          variant: "destructive"
+        });
         return;
       }
 
-      const formattedItems = data?.map(item => ({
-        id: item.id,
-        product_id: item.product_id,
-        quantity: item.quantity,
-        product: {
-          name: item.products?.name || '',
-          price: item.products?.price || 0,
-          image_url: item.products?.image_url || null
-        }
-      })) || [];
+      console.log('Raw cart data:', data);
 
+      const formattedItems = data?.map(item => {
+        console.log('Processing cart item:', item);
+        return {
+          id: item.id,
+          product_id: item.product_id,
+          quantity: item.quantity,
+          product: {
+            name: item.products?.name || 'Producto sin nombre',
+            price: Number(item.products?.price) || 0,
+            image_url: item.products?.image_url || null
+          }
+        };
+      }) || [];
+
+      console.log('Formatted cart items:', formattedItems);
       setCartItems(formattedItems);
       setTotalItems(formattedItems.reduce((sum, item) => sum + item.quantity, 0));
     } catch (error) {
       console.error('Error loading cart:', error);
+      toast({
+        title: "Error",
+        description: "Error al cargar el carrito",
+        variant: "destructive"
+      });
     }
   };
 
   // Add item to cart
   const addToCart = async (productId: string, quantity: number = 1) => {
     setIsLoading(true);
+    console.log('Adding to cart:', { productId, quantity, sessionId });
+    
     try {
-      // Check if item already exists
-      const { data: existingItem } = await supabase
+      // First check if product exists
+      const { data: product, error: productError } = await supabase
+        .from('products')
+        .select('id, name, price')
+        .eq('id', productId)
+        .single();
+
+      if (productError || !product) {
+        console.error('Product not found:', productError);
+        throw new Error('Producto no encontrado');
+      }
+
+      console.log('Product found:', product);
+
+      // Check if item already exists in cart
+      const { data: existingItem, error: checkError } = await supabase
         .from('cart_items')
         .select('id, quantity')
         .eq('session_id', sessionId)
         .eq('product_id', productId)
         .maybeSingle();
 
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('Error checking existing item:', checkError);
+        throw checkError;
+      }
+
+      console.log('Existing item check:', existingItem);
+
       if (existingItem) {
+        console.log('Updating existing item');
         // Update existing item
-        const { error } = await supabase
+        const { error: updateError } = await supabase
           .from('cart_items')
           .update({ 
             quantity: existingItem.quantity + quantity,
@@ -94,10 +136,14 @@ export const useCart = () => {
           })
           .eq('id', existingItem.id);
 
-        if (error) throw error;
+        if (updateError) {
+          console.error('Error updating cart item:', updateError);
+          throw updateError;
+        }
       } else {
+        console.log('Adding new item');
         // Add new item
-        const { error } = await supabase
+        const { error: insertError } = await supabase
           .from('cart_items')
           .insert({
             session_id: sessionId,
@@ -105,20 +151,24 @@ export const useCart = () => {
             quantity
           });
 
-        if (error) throw error;
+        if (insertError) {
+          console.error('Error inserting cart item:', insertError);
+          throw insertError;
+        }
       }
 
+      // Reload cart to get updated data
       await loadCart();
       
       toast({
         title: "Producto añadido",
-        description: "El producto se ha añadido al carrito correctamente"
+        description: `${product.name} se ha añadido al carrito`
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding to cart:', error);
       toast({
         title: "Error",
-        description: "No se pudo añadir el producto al carrito",
+        description: error.message || "No se pudo añadir el producto al carrito",
         variant: "destructive"
       });
     } finally {
@@ -129,12 +179,17 @@ export const useCart = () => {
   // Remove item from cart
   const removeFromCart = async (itemId: string) => {
     try {
+      console.log('Removing item from cart:', itemId);
+      
       const { error } = await supabase
         .from('cart_items')
         .delete()
         .eq('id', itemId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error removing from cart:', error);
+        throw error;
+      }
 
       await loadCart();
       
@@ -160,6 +215,8 @@ export const useCart = () => {
     }
 
     try {
+      console.log('Updating quantity:', { itemId, quantity });
+      
       const { error } = await supabase
         .from('cart_items')
         .update({ 
@@ -168,23 +225,36 @@ export const useCart = () => {
         })
         .eq('id', itemId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating quantity:', error);
+        throw error;
+      }
 
       await loadCart();
     } catch (error) {
       console.error('Error updating quantity:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar la cantidad",
+        variant: "destructive"
+      });
     }
   };
 
   // Clear cart
   const clearCart = async () => {
     try {
+      console.log('Clearing cart for session:', sessionId);
+      
       const { error } = await supabase
         .from('cart_items')
         .delete()
         .eq('session_id', sessionId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error clearing cart:', error);
+        throw error;
+      }
 
       setCartItems([]);
       setTotalItems(0);
@@ -195,6 +265,11 @@ export const useCart = () => {
       });
     } catch (error) {
       console.error('Error clearing cart:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo limpiar el carrito",
+        variant: "destructive"
+      });
     }
   };
 
