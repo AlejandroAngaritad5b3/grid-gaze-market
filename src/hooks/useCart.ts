@@ -157,7 +157,7 @@ export const useCart = () => {
         }
       }
 
-      // Reload cart to get updated data and update state immediately
+      // Reload cart to get updated data
       await loadCart();
       
       toast({
@@ -191,7 +191,6 @@ export const useCart = () => {
         throw error;
       }
 
-      // Update state immediately
       await loadCart();
       
       toast({
@@ -231,7 +230,6 @@ export const useCart = () => {
         throw error;
       }
 
-      // Update state immediately
       await loadCart();
     } catch (error) {
       console.error('Error updating quantity:', error);
@@ -258,7 +256,6 @@ export const useCart = () => {
         throw error;
       }
 
-      // Update state immediately
       setCartItems([]);
       setTotalItems(0);
       
@@ -276,32 +273,9 @@ export const useCart = () => {
     }
   };
 
-  // Set up real-time subscription for cart updates
   useEffect(() => {
     loadCart();
-
-    // Subscribe to real-time changes
-    const channel = supabase
-      .channel('cart-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'cart_items',
-          filter: `session_id=eq.${sessionId}`
-        },
-        (payload) => {
-          console.log('Real-time cart update:', payload);
-          loadCart(); // Reload cart when changes occur
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [sessionId]);
+  }, []);
 
   return {
     cartItems,
