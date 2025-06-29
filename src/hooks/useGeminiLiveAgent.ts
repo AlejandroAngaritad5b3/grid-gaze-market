@@ -1,4 +1,3 @@
-
 import { useState, useRef } from 'react';
 import { useToast } from "@/hooks/use-toast";
 
@@ -97,7 +96,7 @@ export const useGeminiLiveAgent = (currentProduct: Product | null) => {
     setIsProcessing(true);
     
     try {
-      console.log('Enviando audio a Gemini Live Agent:', audioBlob.size);
+      console.log('Enviando audio a Gemini Live Agent (binary):', audioBlob.size);
       
       const formData = new FormData();
       formData.append('audio', audioBlob, 'voice.webm');
@@ -111,7 +110,7 @@ export const useGeminiLiveAgent = (currentProduct: Product | null) => {
         }));
       }
 
-      const response = await fetch('http://localhost:8502/api/voice/chat', {
+      const response = await fetch('http://localhost:8502/api/voice/chat-binary', {
         method: 'POST',
         body: formData
       });
@@ -121,7 +120,7 @@ export const useGeminiLiveAgent = (currentProduct: Product | null) => {
       }
 
       const data = await response.json();
-      console.log('Respuesta de Gemini Live:', data);
+      console.log('Respuesta de Gemini Live (binary):', data);
 
       // Agregar mensaje del usuario (transcripción)
       if (data.transcript) {
